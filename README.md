@@ -1,133 +1,77 @@
-# FitScan/Nirs
+# Skeletal muscle mitochondrial oxidative capacity from NIRS
 
-<p align="center">
-  <img src="./www/app_logo.png" width="400" alt="FitScan logo" />
-</p>
+Estimates skeletal muscle mitochondrial oxidative capacity from near-infrared
+spectroscopy using the repeated arterial-occlusion method of Ryan et al. 2012
+(*J Appl Physiol* 113:175–183) and Ryan et al. 2014 (*J Physiol* 592.15:3231–3241).
+Both papers are in this folder.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Built with R Shiny](https://img.shields.io/badge/built%20with-R%20Shiny-2a78d6)
-![Python](https://img.shields.io/badge/python-reticulate-1baf7a)
+The headline output is the recovery **time constant Tc** (and `k = 1/Tc`) of
+post-exercise muscle V̇O2. A smaller Tc means faster recovery and greater
+mitochondrial capacity.
 
----
+## Pipeline
 
-**FitScan** is an R Shiny application that turns a raw **Google Health / Fitbit Takeout export** into a clean, explorable cardiovascular dashboard — no terminal required. It wraps Python-based extraction (via `reticulate`) and `ggplot2`-based visualization behind a single browser interface: upload a `.zip`, extract, and visualise, all in one place.
-
-FitScan is designed to be:
-
-- **Upload-driven** – accepts the standard Google Takeout `.zip` export directly, no manual unzipping or file wrangling.
-- **Multi-participant** – load as many participants as you like into one session and unlock cross-participant comparison plots.
-- **Exploration-ready** – a fixed cardiovascular dashboard for the essentials, plus an interactive explorer for any variable, chart type, and date range.
-- **Fully downloadable** – every plot (and every extracted summary) can be downloaded individually or bundled as a zip.
-
----
-
-## Installation
-
-### Requirements
-
-- R (≥ 4.1) with the following packages: `shiny`, `reticulate`, `ggplot2`, `dplyr`, `tidyr`, `scales`, `patchwork`, `DT`, `zip`
-- Python 3 (FitScan provisions its own virtual environment automatically on first launch — no manual Python setup needed)
-
-### From GitHub
-
-```r
-# install.packages("remotes")  # if needed
-remotes::install_github("barah123/FitScan")
-```
-
-Or clone directly and run it as a project:
+Three steps, each a folder with its own README. Run in order, per subject:
 
 ```bash
-git clone https://github.com/barah123/FitScan.git
-cd FitScan
+Rscript cleaning_STEP/clean_nirs.R   "Practice12.xlsx"   # raw export -> 1 s dataset
+Rscript analysis_STEP/analyse_nirs.R "Practice12"        # -> mVO2 per occlusion, Tc
+Rscript plotting_STEP/plot_nirs.R    "Practice12"        # -> figures 1-6
 ```
 
-```r
-# From R, with the FitScan folder as the working directory
-shiny::runApp(".")
-```
+| folder | does | key outputs |
+|---|---|---|
+| [`cleaning_STEP/`](cleaning_STEP/README.md) | trim to A1, Hz → seconds, average Tx then Rx, label phases and the 8 s/8 s occlusion grid | `<id>_cleaned_1s.csv`, `<id>_occlusion_windows.csv`, `<id>_qc_report.csv` |
+| [`analysis_STEP/`](analysis_STEP/README.md) | blood-volume correction, mV̇O2 per occlusion, monoexponential recovery fit | `<id>_mvo2.csv`, `<id>_recovery_fit.csv`, `<id>_fig6_mvo2_recovery_fit.png` |
+| [`plotting_STEP/`](plotting_STEP/README.md) | signal-level figures from the source papers | `<id>_fig1…fig5.png`, `<id>_plots.png` |
 
-The first launch takes a few extra seconds while `reticulate` builds a dedicated Python virtual environment (`r-fitbit-shiny`) with `pandas` installed. Every launch after that is instant.
+Raw `.xlsx` exports stay in this root folder. Each script finds its inputs and
+writes into its own folder regardless of where you run it from.
 
----
+Requires R with `readxl dplyr tidyr readr ggplot2 patchwork`.
 
-## Input data format
+## Method, in brief
 
-FitScan expects the **Google Health Takeout `.zip`** exactly as downloaded from [Google Takeout](https://takeout.google.com/) for a Fitbit-linked Google Health account, unmodified. Internally it looks for the standard Takeout layout:
+1. A cuff is inflated above arterial pressure over the muscle while NIRS records
+   oxygenated (O2Hb) and deoxygenated (HHb) haemoglobin/myoglobin.
+2. During occlusion no oxygen is delivered or removed, so the **slope** of HHb
+   (or −O2Hb) over the first seconds reflects muscle oxygen consumption (mV̇O2).
+3. One occlusion at **rest** gives resting mV̇O2.
+4. After exercise, a series of short repeated occlusions tracks mV̇O2 as it
+   **decays monoexponentially** back toward rest.
+5. Fitting `mV̇O2(t) = Rest + Delta · e^(−t/Tc)` gives **Tc**, the index of
+   mitochondrial oxidative capacity.
 
-```
-Takeout/Google Health/Physical Activity_GoogleData/
-    daily_resting_heart_rate.csv
-    daily_heart_rate_variability.csv
-    steps_*.csv
-    activity_level_*.csv
-    active_zone_minutes_*.csv
-    sedentary_period_*.csv
-    heart_rate_*.csv
-    daily_respiratory_rate.csv
-Takeout/Google Health/Sleep Score/
-    sleep_score.csv
-```
+The blood-volume correction (Ryan 2012, Method 1) and the 3 s slope window are
+documented in [`analysis_STEP/README.md`](analysis_STEP/README.md).
 
-Each `.csv` inside the zip is read and merged into one **daily summary per participant** — you do not need to extract or rename anything yourself; just upload the `.zip` as-is.
+## Study protocol
 
----
+Event codes appear in column 30 of the raw export:
 
-## App features
+| code | marks | nominal |
+|---|---|---|
+| A1 | baseline starts | 120 s to B1 |
+| B1 | resting occlusion starts | 30 s to C1 |
+| C1 | reperfusion (cuff released) | — |
+| D1 | exercise starts | 60 s to E1 |
+| E1 | exercise ends | — |
+| F1 | recovery occlusion series starts | 180 s to G1 |
+| G1 | recovery occlusion series ends | — |
+| H1 | end of study | — |
 
-### 1. Upload & Manage
-Upload a Takeout `.zip`, assign a participant ID (auto-suggested, editable), and extract its daily Fitbit summary in one click. Repeat for as many participants as needed — they all stay loaded for the session. Each participant's summary is downloadable as CSV, individually or bundled as a zip.
+Deviations from these nominals are reported by `clean_nirs.R`, never corrected.
 
-### 2. Participant Dashboard
-A fixed, publication-style dashboard for one participant at a time: resting heart rate trend, heart rate range per day, daily steps, activity composition, active zone minutes, HRV across sleep nights, sedentary bouts, sleep quality, and a composite overview panel. Every plot has its own PNG download, plus a "download all" zip.
+## Reference material
 
-### 3. Explore
-An interactive builder: pick any participant(s), any numeric variable (steps, HRV, sleep score, respiratory rate, and more), a chart type (line / bar / point), and a date range. Renders on the fly and downloads as PNG.
+`data_cleaning_transcript.md`, `NIRS_Pipeline_Questions_and_Challenges.docx` and
+`Docoumentation of the data.docx` record the decisions behind the cleaning
+procedure. `Information on the NIRS output file` is the vendor's explanation of
+the column naming. These are context; no script reads them.
 
-### 4. Compare Participants
-Unlocks once 2+ participants are loaded: resting HR trend across participants, daily steps faceted by participant, resting HR distribution boxplot, and an HRV comparison plot — each downloadable individually or as a bundle.
+## archive/
 
----
-
-## Example workflow
-
-1. Open the app and go to **Upload & Manage**.
-2. Upload `takeout-XXXXXXXXTXXXXXXZ-3-001.zip`, set the participant ID (e.g. `P01`), and click **Extract & add to session**.
-3. Repeat step 2 for additional participants (e.g. `P02`, `P03`, …).
-4. Go to **Participant Dashboard** to view the full cardiovascular dashboard for a chosen participant.
-5. Go to **Explore** to build a custom view — pick a variable, chart type, and date range across one or more participants.
-6. Once 2+ participants are loaded, go to **Compare Participants** for cross-participant plots.
-7. Download any plot with its **Download PNG** button, or grab everything at once with a **Download all (zip)** button.
-
----
-
-<table align="center">
-  <tr>
-    <td><img src="./www/scan1.png" width="420" /></td>
-    <td><img src="./www/scan4.png" width="420" /></td>
-  </tr>
-  <tr>
-    <td><img src="./www/scan2.png" width="420" /></td>
-    <td><img src="./www/scan3.png" width="420" /></td>
-  </tr>
-</table>
-
----
-
-## Contact
-
-Developed by the **FITGut Lab** for research purposes.
-
-📧 [fitgutlab@gwu.edu](mailto:fitgutlab@gwu.edu) · 📞 +1 202-994-2757 · [@fitgutlab](https://github.com/fitgutlab)
-
-Department of Exercise and Nutrition Sciences · Milken Institute School of Public Health · George Washington University · Washington, DC, USA
-
----
-
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
-
-Copyright (c) 2026 FITGut Lab, George Washington University
-
-This project is licensed under the terms of the MIT license.
-You are free to use, modify, and distribute this work, subject to the
-conditions specified in the LICENSE file.
+Superseded work, kept for reference — an earlier pipeline that made different
+methodological choices, plus one-off diagnostics. See
+[`archive/README.md`](archive/README.md). Nothing there is part of the current
+pipeline.
