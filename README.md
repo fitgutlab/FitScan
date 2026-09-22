@@ -1,4 +1,4 @@
-# FitScan
+# FitScan/Nirs
 
 <p align="center">
   <img src="./www/app_logo.png" width="400" alt="FitScan logo" />
