@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "CanisLupus 2.0: Interactive Microbiome Data Analysis"
+authors:
+  - family-names: Appiah
+    given-names: Philip Yamoah
+    affiliation: "The George Washington University"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+version: 2.0.0
+date-released: 2026-09-21
+license: MIT
+repository-code: "https://github.com/barah123/canis_lupus2.0"
