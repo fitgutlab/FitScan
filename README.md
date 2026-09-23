@@ -78,4 +78,4 @@ pipeline.
 
 
 Citation
-Philip Appiah, & FITGut LAB. (2026). fitgutlab/FitScan: v1.0.0 (Version 1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22885722
+Philip Appiah, Clara de Torres, Ines Machaz, Andrea Osorio & FITGut LAB. (2026). fitgutlab/FitScan: v1.0.0 (Version 1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22885722
