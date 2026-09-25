@@ -12,7 +12,7 @@ mitochondrial capacity.
 ## Pipeline
 
 Three steps, each a folder with its own README. Run in order, per subject:
-
+.
 ```bash
 Rscript cleaning_STEP/clean_nirs.R   "Practice12.xlsx"   # raw export -> 1 s dataset
 Rscript analysis_STEP/analyse_nirs.R "Practice12"        # -> mVO2 per occlusion, Tc
