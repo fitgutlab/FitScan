@@ -1,5 +1,5 @@
 # Skeletal muscle mitochondrial oxidative capacity from NIRS 
-testest
+
 Estimates skeletal muscle mitochondrial oxidative capacity from near-infrared
 spectroscopy using the repeated arterial-occlusion method of Ryan et al. 2012
 (*J Appl Physiol* 113:175–183) and Ryan et al. 2014 (*J Physiol* 592.15:3231–3241).
